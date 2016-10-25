@@ -139,80 +139,48 @@ object Voices {
     }
 
     private[synth] final def expand: UGenInLike = {
-      val inputs      = inputIterator.toVector
-      val inputsExp   = inputs.map(_.expand.flatOutputs)
-      val numTraj     = inputsExp.iterator.map(_.size).max
-      var state       = voices.featureIterator.toVector: GE
-      val voiceOnOff  = voices.active
-      val voiceNos    = 0 until voices.num: GE
+      import voices.num
+      val inputs        = inputIterator.toVector
+      val inputsExp     = inputs.map(_.expand.flatOutputs)
+      val numInChans    = inputsExp.iterator.map(_.size).max
+      var state         = voices.state
+      val voiceNos      = 0 until num: GE
+      val activeOld     = voices.active
+      var activeNew     = Vector.fill(num)(0: GE): GE // this will become `active`
+      val bothValid     = activeOld & valid
 
-      var activated   = Vector.fill(voices.num)(0: GE): GE
-      val bothOn      = voiceOnOff * valid
-      val noFounds = (0 until numTraj).map { tIdx =>
-        val trajIn      = inputs.map(_ \ tIdx): GE
-        val idMatch     = ??? : GE // sustainCond
-        val bestIn      = Flatten(Seq[GE](0, idMatch * (bothOn & !activated)))
+      val notFound_ = for (ch <- 0 until numInChans) yield {
+        val inputsCh    = inputs.map(_ \ ch): GE
+        // remember: sustainCond = [[ch0] * num, [ch1] * num, ... [chN] * num]
+        val isSustain   = ChannelRangeProxy(sustainCond, from = ch * num, until = (ch + 1) * num)
+        val voiceAvail  = !activeNew
+        val bestIn      = Flatten(Seq[GE](0, isSustain * (bothValid & voiceAvail)))
         val best        = ArrayMax.kr(bestIn)
         val bestIdx     = best.index - 1
-
         val bestMask    = voiceNos sig_== bestIdx
-        activated      |= bestMask
+        activeNew      |= bestMask
         val bestMaskN   = !bestMask
-
-        state           = state * bestMaskN + trajIn * bestMask
+        state           = state * bestMaskN + inputsCh * bestMask
 
         bestIdx sig_== -1
       }
+      val notFound: GE  = notFound_
+      val startChan     = notFound & valid
 
-      for (tIdx <- 0 until numTraj) {
-//        val idIn            = identIn \ tIdx
-//        val fIn             = freqIn  \ tIdx
-//        val aIn             = ampIn   \ tIdx
-//        val isOn            = idIn > 0
-//        val voiceAvail      = !(activated | voiceOnOff)
-//        val notFound        = noFounds(tIdx)
-//        val startTraj       = notFound & isOn
-//        val free            = ArrayMax.kr(0 +: (startTraj & voiceAvail))
-//        val freeIdx         = free.index - 1
-//        val freeMask        = voiceNos sig_== freeIdx
-//        activated          |= freeMask
-//        val freeMaskN       = !freeMask
-//        voiceId             = voiceId   * freeMaskN + idIn * freeMask
-//        voiceFreq           = voiceFreq * freeMaskN + fIn  * freeMask
-//        voiceAmp            = voiceAmp  * freeMaskN + aIn  * freeMask
+      for (ch <- 0 until numInChans) {
+        val inputsCh    = inputs.map(_ \ ch): GE
+        val voiceAvail  = !(activeNew | activeOld)
+        val freeIn      = Flatten(Seq[GE](0, startChan & voiceAvail))
+        val free        = ArrayMax.kr(freeIn)
+        val freeIdx     = free.index - 1
+        val freeMask    = voiceNos sig_== freeIdx
+        activeNew      |= freeMask
+        val freeMaskN   = !freeMask
+        state           = state * freeMaskN + inputsCh * freeMask
       }
-      ???
+
+      Flatten(Seq(state, activeNew))
     }
-
-    //    // sadly, we had to copy this code from UGenSource
-    //    protected final def unwrap(args: Vec[UGenInLike]): UGenInLike = {
-    //      var uIns    = Vector.empty: Vec[UGenIn]
-    //      var uInsOk  = true
-    //      var exp     = 0
-    //      args.foreach(_.unbubble match {
-    //        case u: UGenIn => if (uInsOk) uIns :+= u
-    //        case g: ugen.UGenInGroup =>
-    //          exp     = math.max(exp, g.numOutputs)
-    //          uInsOk  = false // don't bother adding further UGenIns to uIns
-    //      })
-    //      if (uInsOk) {
-    //        // aka uIns.size == args.size
-    //        makeUGen(uIns)
-    //      } else {
-    //        // rewrap(args, exp)
-    ////        var i = 0
-    ////        while (i < exp) {
-    ////          unwrap(source, args.map(_.unwrap(i)))
-    ////          i += 1
-    ////        }
-    //        ugen.UGenInGroup(Vector.tabulate(exp)(i => unwrap(args.map(_.unwrap(i)))))
-    //      }
-    //    }
-
-    /*
-
-
-     */
   }
 
   case class Out(analysis: Analysis, active: GE = 0) extends Lazy.Expander[Unit] {
@@ -232,7 +200,10 @@ trait Voices extends GE with ControlRated {
   /** Number of features (graph element components) per voice. */
   def features: Int
 
-  final def featureIterator: Iterator[GE] = Iterator.range(0, features).map(featureIn)
+  // final def featureIterator: Iterator[GE] = Iterator.range(0, features).map(featureIn)
+
+  /** All (user) state except `active`. */
+  def state: GE = ChannelRangeProxy(this, from = 0, until = features * num)
 
   /*
       organization of the channels - features are joined together (this is an arbitrary decision):
