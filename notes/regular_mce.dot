@@ -1,0 +1,115 @@
+digraph UGenGraph {
+ranksep = 1.0;
+  node [shape=plaintext] ugen0 [label=<
+      <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0">
+      <TR>
+        <TD PORT="in0">bus: <FONT COLOR="blue">0</FONT></TD>
+      </TR><TR>
+        <TD COLSPAN="2"><FONT POINT-SIZE="16"><B>In</B></FONT></TD>
+      </TR><TR>
+        <TD PORT="out0">out0</TD>
+        <TD PORT="out1">out1</TD>
+      </TR>
+      </TABLE>
+    >];
+
+  node [shape=plaintext] ugen1 [label=<
+      <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0">
+      <TR>
+        <TD PORT="in0">in: <FONT COLOR="blue">3</FONT></TD>
+      </TR><TR>
+        <TD COLSPAN="1"><FONT POINT-SIZE="16"><B>DC</B></FONT></TD>
+      </TR><TR>
+        <TD PORT="out0">out</TD>
+      </TR>
+      </TABLE>
+    >];
+
+  node [shape=plaintext] ugen2 [label=<
+      <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0">
+      <TR>
+        <TD PORT="in0">a</TD>
+        <TD PORT="in1">b</TD>
+      </TR><TR>
+        <TD COLSPAN="2"><FONT POINT-SIZE="16"><B>sig_==</B></FONT></TD>
+      </TR><TR>
+        <TD PORT="out0">out</TD>
+      </TR>
+      </TABLE>
+    >];
+
+  node [shape=plaintext] ugen3 [label=<
+      <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0">
+      <TR>
+        <TD PORT="in0">in: <FONT COLOR="blue">4</FONT></TD>
+      </TR><TR>
+        <TD COLSPAN="1"><FONT POINT-SIZE="16"><B>DC</B></FONT></TD>
+      </TR><TR>
+        <TD PORT="out0">out</TD>
+      </TR>
+      </TABLE>
+    >];
+
+  node [shape=plaintext] ugen4 [label=<
+      <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0">
+      <TR>
+        <TD PORT="in0">a</TD>
+        <TD PORT="in1">b</TD>
+      </TR><TR>
+        <TD COLSPAN="2"><FONT POINT-SIZE="16"><B>sig_==</B></FONT></TD>
+      </TR><TR>
+        <TD PORT="out0">out</TD>
+      </TR>
+      </TABLE>
+    >];
+
+  node [shape=plaintext] ugen5 [label=<
+      <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0">
+      <TR>
+        <TD PORT="in0">in: <FONT COLOR="blue">5</FONT></TD>
+      </TR><TR>
+        <TD COLSPAN="1"><FONT POINT-SIZE="16"><B>DC</B></FONT></TD>
+      </TR><TR>
+        <TD PORT="out0">out</TD>
+      </TR>
+      </TABLE>
+    >];
+
+  node [shape=plaintext] ugen6 [label=<
+      <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0">
+      <TR>
+        <TD PORT="in0">a</TD>
+        <TD PORT="in1">b</TD>
+      </TR><TR>
+        <TD COLSPAN="2"><FONT POINT-SIZE="16"><B>sig_==</B></FONT></TD>
+      </TR><TR>
+        <TD PORT="out0">out</TD>
+      </TR>
+      </TABLE>
+    >];
+
+  node [shape=plaintext] ugen7 [label=<
+      <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0">
+      <TR>
+        <TD PORT="in0">bus: <FONT COLOR="blue">0</FONT></TD>
+        <TD PORT="in1">in0</TD>
+        <TD PORT="in2">in1</TD>
+        <TD PORT="in3">in2</TD>
+      </TR><TR>
+        <TD COLSPAN="4"><FONT POINT-SIZE="16"><B>Out</B></FONT></TD>
+      </TR>
+      </TABLE>
+    >];
+
+{rank = same; ugen0->ugen1->ugen3->ugen5 [color=white]; }
+
+  ugen0:out0 -> ugen2:in0;
+  ugen1:out0 -> ugen2:in1;
+  ugen0:out1 -> ugen4:in0;
+  ugen3:out0 -> ugen4:in1;
+  ugen0:out0 -> ugen6:in0;
+  ugen5:out0 -> ugen6:in1;
+  ugen2:out0 -> ugen7:in1;
+  ugen4:out0 -> ugen7:in2;
+  ugen6:out0 -> ugen7:in3;
+}
