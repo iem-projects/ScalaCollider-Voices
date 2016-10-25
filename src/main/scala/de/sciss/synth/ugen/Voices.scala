@@ -71,7 +71,7 @@ trait VoicesExample {
   * }}}
   */
 object Voices {
-  case class T1(num: Int) extends Voices {
+  final case class T1(num: Int) extends Voices {
     def features = 1
 
     def in: GE = featureIn(0)
@@ -79,7 +79,7 @@ object Voices {
     def assign(in: GE, valid: GE = 1): A1 = A1(this, in = in, valid = valid, sustainCond = 0)
   }
 
-  case class T2(num: Int) extends Voices {
+  final case class T2(num: Int) extends Voices {
     def features = 2
 
     def in1: GE = featureIn(0)
@@ -88,28 +88,86 @@ object Voices {
     def assign(in1: GE, in2: GE, valid: GE = 1): A2 = A2(this, in1 = in1, in2 = in2, valid = valid, sustainCond = 0)
   }
 
-  case class A1(voices: T1, in: GE, valid: GE, sustainCond: GE) extends Analysis {
+  final case class T3(num: Int) extends Voices {
+    def features = 3
+
+    def in1: GE = featureIn(0)
+    def in2: GE = featureIn(1)
+    def in3: GE = featureIn(2)
+
+    def assign(in1: GE, in2: GE, in3: GE, valid: GE = 1): A3 = 
+      A3(this, in1 = in1, in2 = in2, in3 = in3, valid = valid, sustainCond = 0)
+  }
+
+  final case class T4(num: Int) extends Voices {
+    def features = 4
+
+    def in1: GE = featureIn(0)
+    def in2: GE = featureIn(1)
+    def in3: GE = featureIn(2)
+    def in4: GE = featureIn(3)
+
+    def assign(in1: GE, in2: GE, in3: GE, in4: GE, valid: GE = 1): A4 =
+      A4(this, in1 = in1, in2 = in2, in3 = in3, in4 = in4, valid = valid, sustainCond = 0)
+  }
+
+  final case class A1(voices: T1, in: GE, valid: GE, sustainCond: GE)
+    extends Analysis {
+
     def out: GE = featureOut(0)
 
     type Repr = A1
 
     protected def replaceSustain(newSustain: GE): Repr = copy(sustainCond = newSustain)
 
-    protected def inputIterator: Iterator[GE] = Iterator.single(out)
+    protected def inputs: List[GE] = in :: Nil
   }
 
-  case class A2(voices: T2, in1: GE, in2: GE, valid: GE, sustainCond: GE) extends Analysis {
-    def out1      : GE = featureOut(0)
-    def out2      : GE = featureOut(1)
+  final case class A2(voices: T2, in1: GE, in2: GE, valid: GE, sustainCond: GE)
+    extends Analysis {
+
+    def out1: GE = featureOut(0)
+    def out2: GE = featureOut(1)
 
     type Repr = A2
 
     protected def replaceSustain(newSustain: GE): Repr = copy(sustainCond = newSustain)
 
-    protected def inputIterator: Iterator[GE] = Iterator(out1, out2)
+    protected def inputs: List[GE] = in1 :: in2 :: Nil
+  }
+
+  final case class A3(voices: T3, in1: GE, in2: GE, in3: GE, valid: GE, sustainCond: GE)
+    extends Analysis {
+
+    def out1: GE = featureOut(0)
+    def out2: GE = featureOut(1)
+    def out3: GE = featureOut(2)
+
+    type Repr = A3
+
+    protected def replaceSustain(newSustain: GE): Repr = copy(sustainCond = newSustain)
+
+    protected def inputs: List[GE] = in1 :: in2 :: in3 :: Nil
+  }
+
+  final case class A4(voices: T4, in1: GE, in2: GE, in3: GE, in4: GE, valid: GE, sustainCond: GE)
+    extends Analysis {
+
+    def out1: GE = featureOut(0)
+    def out2: GE = featureOut(1)
+    def out3: GE = featureOut(2)
+    def out4: GE = featureOut(2)
+
+    type Repr = A4
+
+    protected def replaceSustain(newSustain: GE): Repr = copy(sustainCond = newSustain)
+
+    protected def inputs: List[GE] = in1 :: in2 :: in3 :: in4 :: Nil
   }
 
   trait Analysis extends GE with ControlRated {
+    override def productPrefix: String = s"Voices$$A${voices.features}"
+
     // ---- abstract ----
 
     type Repr <: Analysis
@@ -120,7 +178,7 @@ object Voices {
 
     protected def replaceSustain(newSustain: GE): Repr
 
-    protected def inputIterator: Iterator[GE]
+    protected def inputs: List[GE]
 
     // ---- impl ----
 
@@ -140,8 +198,8 @@ object Voices {
 
     private[synth] final def expand: UGenInLike = {
       import voices.num
-      val inputs        = inputIterator.toVector
-      val inputsExp     = inputs.map(_.expand.flatOutputs)
+      val _inputs       = inputs
+      val inputsExp     = _inputs.map(_.expand.flatOutputs)
       val numInChans    = inputsExp.iterator.map(_.size).max
       var state         = voices.state
       val voiceNos      = 0 until num: GE
@@ -150,7 +208,7 @@ object Voices {
       val bothValid     = activeOld & valid
 
       val notFound_ = for (ch <- 0 until numInChans) yield {
-        val inputsCh    = inputs.map(_ \ ch): GE
+        val inputsCh    = _inputs.map(_ \ ch): GE
         // remember: sustainCond = [[ch0] * num, [ch1] * num, ... [chN] * num]
         val isSustain   = ChannelRangeProxy(sustainCond, from = ch * num, until = (ch + 1) * num)
         val voiceAvail  = !activeNew
@@ -168,7 +226,7 @@ object Voices {
       val startChan     = notFound & valid
 
       for (ch <- 0 until numInChans) {
-        val inputsCh    = inputs.map(_ \ ch): GE
+        val inputsCh    = _inputs.map(_ \ ch): GE
         val voiceAvail  = !(activeNew | activeOld)
         val freeIn      = Flatten(Seq[GE](0, startChan & voiceAvail))
         val free        = ArrayMax.kr(freeIn)
@@ -183,7 +241,9 @@ object Voices {
     }
   }
 
-  case class Out(analysis: Analysis, active: GE = 0) extends Lazy.Expander[Unit] {
+  final case class Out(analysis: Analysis, active: GE = 0) extends Lazy.Expander[Unit] {
+    override def productPrefix: String = "Voices$" + "Out"
+
     protected def makeUGens: Unit = {
       val newActive   = analysis.activated | active
       import analysis.voices.{features, num}
@@ -194,6 +254,8 @@ object Voices {
   }
 }
 trait Voices extends GE with ControlRated {
+  override def productPrefix: String = s"Voices$$T$features"
+
   /** Number of voices allocated. */
   def num: Int
 
