@@ -3,7 +3,7 @@
 [![Build Status](https://travis-ci.org/iem-projects/ScalaCollider-Voices.svg?branch=master)](https://travis-ci.org/iem-projects/ScalaCollider-Voices)
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/at.iem/scalacollider-voices_2.11/badge.svg)](https://maven-badges.herokuapp.com/maven-central/at.iem/scalacollider-voices_2.11)
 
-A library for [ScalaCollider](https://github.com/Sciss/ScalaCollider) to aids building polyphonic synth graphs.
+A library for [ScalaCollider](https://github.com/Sciss/ScalaCollider) to aid building polyphonic synth graphs.
 This project is (C)opyright 2016 by the Institute of Electronic Music and Acoustics (IEM), Graz. 
 Written by Hanns Holger Rutz. This software is published under the GNU Lesser General Public License v2.1+.
 

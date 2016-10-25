@@ -76,7 +76,7 @@ object Voices {
 
     def in: GE = featureIn(0)
 
-    def assign(in: GE, valid: GE = 1): A1 = A1(this, in = in, valid = valid, sustain = 0)
+    def assign(in: GE, valid: GE = 1): A1 = A1(this, in = in, valid = valid, sustainCond = 0)
   }
 
   case class T2(num: Int) extends Voices {
@@ -85,26 +85,26 @@ object Voices {
     def in1: GE = featureIn(0)
     def in2: GE = featureIn(1)
 
-    def assign(in1: GE, in2: GE, valid: GE = 1): A2 = A2(this, in1 = in1, in2 = in2, valid = valid, sustain = 0)
+    def assign(in1: GE, in2: GE, valid: GE = 1): A2 = A2(this, in1 = in1, in2 = in2, valid = valid, sustainCond = 0)
   }
 
-  case class A1(voices: T1, in: GE, valid: GE, sustain: GE) extends Analysis {
+  case class A1(voices: T1, in: GE, valid: GE, sustainCond: GE) extends Analysis {
     def out: GE = featureOut(0)
 
     type Repr = A1
 
-    protected def replaceSustain(newSustain: GE): Repr = copy(sustain = newSustain)
+    protected def replaceSustain(newSustain: GE): Repr = copy(sustainCond = newSustain)
 
     protected def inputIterator: Iterator[GE] = Iterator.single(out)
   }
 
-  case class A2(voices: T2, in1: GE, in2: GE, valid: GE, sustain: GE) extends Analysis {
+  case class A2(voices: T2, in1: GE, in2: GE, valid: GE, sustainCond: GE) extends Analysis {
     def out1      : GE = featureOut(0)
     def out2      : GE = featureOut(1)
 
     type Repr = A2
 
-    protected def replaceSustain(newSustain: GE): Repr = copy(sustain = newSustain)
+    protected def replaceSustain(newSustain: GE): Repr = copy(sustainCond = newSustain)
 
     protected def inputIterator: Iterator[GE] = Iterator(out1, out2)
   }
@@ -114,8 +114,9 @@ object Voices {
 
     type Repr <: Analysis
 
-    val voices    : Voices
-    def valid     : GE
+    val voices      : Voices
+    def valid       : GE
+    def sustainCond : GE
 
     protected def replaceSustain(newSustain: GE): Repr
 
@@ -138,47 +139,48 @@ object Voices {
     }
 
     private[synth] final def expand: UGenInLike = {
-      val inputsExp   = inputIterator.map(_.expand.flatOutputs).toVector
+      val inputs      = inputIterator.toVector
+      val inputsExp   = inputs.map(_.expand.flatOutputs)
       val numTraj     = inputsExp.iterator.map(_.size).max
+      var state       = voices.featureIterator.toVector: GE
+      val voiceOnOff  = voices.active
+      val voiceNos    = 0 until voices.num: GE
+
       var activated   = Vector.fill(voices.num)(0: GE): GE
-      //      val noFounds = (0 until numTraj).map { tIdx =>
-      //        val idIn        = identIn \ tIdx
-      //        val fIn         = freqIn  \ tIdx
-      //        val aIn         = ampIn   \ tIdx
-      //        val isOn        = idIn > 0
-      //        val idMatch     = voiceId sig_== idIn
-      //        val bothOn      = voiceOnOff & isOn
-      //        val bestIn      = 0 +: (idMatch * (bothOn & !activated))
-      //        val best        = ArrayMax.kr(bestIn)
-      //        val bestIdx     = best.index - 1
-      //
-      //        val bestMask    = voiceNos sig_== bestIdx
-      //        activated      |= bestMask
-      //        val bestMaskN   = !bestMask
-      //        voiceId         = voiceId   * bestMaskN + idIn * bestMask
-      //        voiceFreq       = voiceFreq * bestMaskN + fIn  * bestMask
-      //        voiceAmp        = voiceAmp  * bestMaskN + aIn  * bestMask
-      //
-      //        bestIdx sig_== -1
-      //      }
-      //
-      //      for (tIdx <- 0 until numTraj) {
-      //        val idIn            = identIn \ tIdx
-      //        val fIn             = freqIn  \ tIdx
-      //        val aIn             = ampIn   \ tIdx
-      //        val isOn            = idIn > 0
-      //        val voiceAvail      = !(activated | voiceOnOff)
-      //        val notFound        = noFounds(tIdx)
-      //        val startTraj       = notFound & isOn
-      //        val free            = ArrayMax.kr(0 +: (startTraj & voiceAvail))
-      //        val freeIdx         = free.index - 1
-      //        val freeMask        = voiceNos sig_== freeIdx
-      //        activated          |= freeMask
-      //        val freeMaskN       = !freeMask
-      //        voiceId             = voiceId   * freeMaskN + idIn * freeMask
-      //        voiceFreq           = voiceFreq * freeMaskN + fIn  * freeMask
-      //        voiceAmp            = voiceAmp  * freeMaskN + aIn  * freeMask
-      //      }
+      val bothOn      = voiceOnOff * valid
+      val noFounds = (0 until numTraj).map { tIdx =>
+        val trajIn      = inputs.map(_ \ tIdx): GE
+        val idMatch     = ??? : GE // sustainCond
+        val bestIn      = Flatten(Seq[GE](0, idMatch * (bothOn & !activated)))
+        val best        = ArrayMax.kr(bestIn)
+        val bestIdx     = best.index - 1
+
+        val bestMask    = voiceNos sig_== bestIdx
+        activated      |= bestMask
+        val bestMaskN   = !bestMask
+
+        state           = state * bestMaskN + trajIn * bestMask
+
+        bestIdx sig_== -1
+      }
+
+      for (tIdx <- 0 until numTraj) {
+//        val idIn            = identIn \ tIdx
+//        val fIn             = freqIn  \ tIdx
+//        val aIn             = ampIn   \ tIdx
+//        val isOn            = idIn > 0
+//        val voiceAvail      = !(activated | voiceOnOff)
+//        val notFound        = noFounds(tIdx)
+//        val startTraj       = notFound & isOn
+//        val free            = ArrayMax.kr(0 +: (startTraj & voiceAvail))
+//        val freeIdx         = free.index - 1
+//        val freeMask        = voiceNos sig_== freeIdx
+//        activated          |= freeMask
+//        val freeMaskN       = !freeMask
+//        voiceId             = voiceId   * freeMaskN + idIn * freeMask
+//        voiceFreq           = voiceFreq * freeMaskN + fIn  * freeMask
+//        voiceAmp            = voiceAmp  * freeMaskN + aIn  * freeMask
+      }
       ???
     }
 
@@ -229,6 +231,8 @@ trait Voices extends GE with ControlRated {
 
   /** Number of features (graph element components) per voice. */
   def features: Int
+
+  final def featureIterator: Iterator[GE] = Iterator.range(0, features).map(featureIn)
 
   /*
       organization of the channels - features are joined together (this is an arbitrary decision):
