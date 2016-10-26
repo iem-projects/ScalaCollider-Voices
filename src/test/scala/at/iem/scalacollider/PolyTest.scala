@@ -8,6 +8,7 @@ import scala.Predef.{any2stringadd => _, _}
 
 object PolyTest extends App {
   Server.run { s =>
+    println(s"${new java.util.Date} - before play")
     play {
       def mkWalk() = Gate.kr(Ramp.kr(BrownNoise.kr, 0.1).linexp(-1, 1, 300, 3000), ToggleFF.kr(Dust.kr(1)))
 
@@ -22,6 +23,7 @@ object PolyTest extends App {
       val sig     = SplayAz.ar(numChannels = 2, in = Resonz.ar(LFSaw.ar(an.out), an.out, rq = eg + 0.1) * 0.2)
       Out.ar(0, sig)
     }
+    println(s"${new java.util.Date} - after  play")
 
     s.startAliveThread()
     Thread.sleep(2000)

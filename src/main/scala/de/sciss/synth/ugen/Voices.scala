@@ -165,7 +165,7 @@ object Voices {
     protected def inputs: List[GE] = in1 :: in2 :: in3 :: in4 :: Nil
   }
 
-  trait Analysis extends GE with ControlRated {
+  trait Analysis extends GE.Lazy with ControlRated {
     override def productPrefix: String = s"Voices$$A${voices.features}"
 
     // ---- abstract ----
@@ -196,7 +196,7 @@ object Voices {
       replaceSustain(newSustain)
     }
 
-    private[synth] final def expand: UGenInLike = {
+    protected final def makeUGens: UGenInLike = {
       import voices.num
       val _inputs       = inputs
       val inputsExp     = _inputs.map(_.expand.flatOutputs)
@@ -253,7 +253,7 @@ object Voices {
     }
   }
 }
-trait Voices extends GE with ControlRated {
+trait Voices extends GE.Lazy with ControlRated {
   override def productPrefix: String = s"Voices$$T$features"
 
   /** Number of voices allocated. */
@@ -290,6 +290,6 @@ trait Voices extends GE with ControlRated {
 
   def active: GE = featureIn(features)
 
-  private[synth] def expand: UGenInLike =
+  protected final def makeUGens: UGenInLike =
     LocalIn.kr(Seq.fill[Constant]((num + 1) * features)(0))
 }
