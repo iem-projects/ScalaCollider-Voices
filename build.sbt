@@ -11,12 +11,12 @@ scalacOptions ++= Seq("-deprecation", "-unchecked", "-feature", "-encoding", "ut
 
 // ---- main dependencies ----
 
-lazy val scalaColliderVersion = "1.21.0"
-lazy val ugensVersion         = "1.16.2-SNAPSHOT"
+lazy val scalaColliderVersion = "1.22.0"
+lazy val ugensVersion         = "1.16.1"
 
 // ---- test dependencies ----
 
-lazy val scalaColliderDOTVersion = "0.3.0"
+lazy val scalaColliderDOTVersion = "0.4.0"
 
 libraryDependencies ++= Seq(
   "de.sciss" %% "scalacollider"               % scalaColliderVersion,
