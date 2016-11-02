@@ -187,7 +187,7 @@ object Voices {
     def sustained : GE = active &  voices.active
 
     final def featureOut(idx: Int): GE =
-      ChannelRangeProxy(this, from = idx * voices.num, until = (idx + 1) * voices.num)
+      ChannelRangeProxy(this, from = idx * voices.num, until = (idx + 1) * voices.num, step = 1)
 
     final def close(active: GE = 0): Unit = Out(this, active = active)
 
@@ -210,7 +210,7 @@ object Voices {
       val notFound_ = for (ch <- 0 until numInChans) yield {
         val inputsCh    = _inputs.map(_ \ ch): GE
         // remember: sustainCond = [[ch0] * num, [ch1] * num, ... [chN] * num]
-        val isSustain   = ChannelRangeProxy(sustainCond, from = ch * num, until = (ch + 1) * num)
+        val isSustain   = ChannelRangeProxy(sustainCond, from = ch * num, until = (ch + 1) * num, step = 1)
         val voiceAvail  = !activeNew
         val bestIn      = Flatten(Seq[GE](0, isSustain * (bothValid & voiceAvail)))
         val best        = ArrayMax.kr(bestIn)
@@ -247,7 +247,7 @@ object Voices {
     protected def makeUGens: Unit = {
       val newActive   = analysis.activated | active
       import analysis.voices.{features, num}
-      val newFeatures = ChannelRangeProxy(analysis, from = 0, until = features * num)
+      val newFeatures = ChannelRangeProxy(analysis, from = 0, until = features * num, step = 1)
       val combined    = Flatten(Seq(newFeatures, newActive))
       LocalOut.kr(combined)
     }
@@ -265,7 +265,7 @@ trait Voices extends GE.Lazy with ControlRated {
   // final def featureIterator: Iterator[GE] = Iterator.range(0, features).map(featureIn)
 
   /** All (user) state except `active`. */
-  def state: GE = ChannelRangeProxy(this, from = 0, until = features * num)
+  def state: GE = ChannelRangeProxy(this, from = 0, until = features * num, step = 1)
 
   /*
       organization of the channels - features are joined together (this is an arbitrary decision):
@@ -286,7 +286,7 @@ trait Voices extends GE.Lazy with ControlRated {
    */
 
   final def featureIn(idx: Int): GE =
-    ChannelRangeProxy(this, from = idx * num, until = (idx + 1) * num)
+    ChannelRangeProxy(this, from = idx * num, until = (idx + 1) * num, step = 1)
 
   def active: GE = featureIn(features)
 
